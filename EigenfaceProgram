@@ -1,0 +1,20 @@
+import os
+import random
+import numpy as np
+from scipy import ndimage, linalg
+from sklearn import cross_validation
+
+feature_extraction = Prin_Comp_Anl(face_mat)
+
+eigen_face_space = feature_extraction.project_to_subspace()
+
+x_validate_test = Validation(eigen_face_space, face_label)
+
+person_train, person_test, label_train, label_test = x_validate_test.split_data()
+
+classify_to_predict = KNN_Classification(person_train, person_test, label_train)
+
+prediction_list = classify_to_predict.classifier()
+
+clf_score = x_validate_test.output_result(prediction_list, label_test)
+print "Accuracy Rate: %.3f " % (clf_score)
