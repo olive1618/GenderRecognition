@@ -1,0 +1,59 @@
+class Prin_Comp_Anl(object):
+    def __init__(self, origFaceMat):
+        self.origFaceMat = origFaceMat
+
+    def covarianceMatrix(self):
+        # Row and column count used to multiply matrix so covariance matrix is smallest possible
+        rowCnt, colCnt = np.shape(self.origFaceMat)
+        rowCnt = (1.0 * (rowCnt - 1))
+
+        # Compute covariance matrix of the face matrix. Shape will be (colCnt by colCnt).
+        # Do not normalize first because units are same and desire is to maximize variance.
+        meanFaceMat = self.origFaceMat.mean(0)
+        covMat = np.dot((self.origFaceMat - meanFaceMat).T, (self.origFaceMat - meanFaceMat))
+        covMat = np.divide(covMat, rowCnt, covMat)
+
+        # Mark obsolete objects as none to free memory
+        rowCnt, colCnt, meanFaceMat = None, None, None
+
+        return covMat
+
+    def eigen_decomposition(self):
+        covarianceMat = self.covarianceMatrix()
+
+        # Compute the eigenvectors and eigenvalues of the covariance matrix.  Vector[:,i] corresponds to value[i].
+        # Evector matrix dimensions equals the covariance matrix's dimensions
+        eigen_value, eigen_vector = linalg.eig(covarianceMat, overwrite_a=True)
+
+        # Sort the eigenvectors and eigenvalues in descending order by eigenvalue
+        index_order = np.argsort(-eigen_value)
+        return eigen_value[index_order], eigen_vector[:, index_order]
+
+    def project_to_subspace(self):
+        # evalue shape is (colCnt, ).  evector shape is (colCnt by colCnt)
+        evalue, evector = self.eigen_decomposition()
+
+        # Select the number of eigenvalues needed to reach 90% of explained/common variance
+        sumTotal = 0.0
+        proportion = 0.0
+
+        for element in evalue:
+            sumTotal += np.absolute(element)
+
+        for index, item in enumerate(evalue):
+            if proportion < 0.9:
+                proportion += (np.absolute(item) / sumTotal)
+            else:
+                break
+
+        # Restrict eigenvectors to k most explanatory ones. projectMat shape is (colCnt by k)
+        projectMat = evector[:,:index]
+
+        # Reduce normalized face matrix to subspace size (rowCnt by k)
+        fk_subspace = np.dot(self.origFaceMat, projectMat)
+
+        # Mark obsolete objects as none to free memory
+        sumTotal, proportion, projectMat, index = None, None, None, None
+
+        # Return reduced face-space
+        return fk_subspace
